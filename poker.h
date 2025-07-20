@@ -1,6 +1,7 @@
 #ifndef POKER_H
 #define POKER_H
 
+#include <algorithm>
 #include <vector>
 
 enum class Rank {
@@ -118,6 +119,10 @@ public:
 	cards.push_back(Card(rank, suit));
       }
     }
+  }
+  template <typename URBG>
+  void Shuffle(URBG& rng) {
+    std::shuffle(cards.begin(), cards.end(), rng);
   }
   const std::vector<Card>& Cards() const { return cards; }
 private:
