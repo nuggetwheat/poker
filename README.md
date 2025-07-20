@@ -1,1 +1,1 @@
-# poker
+# Tools for running poker simulations
