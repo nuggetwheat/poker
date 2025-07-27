@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+enum Rank {
+  RANK_UNSPECIFIED = 0;
+  ONE = 1;
+  TWO = 2;
+  THREE = 3;
+  FOUR = 4;
+  FIVE = 5;
+  SIX = 6;
+  SEVEN = 7;
+  EIGHT = 8;
+  NINE = 9;
+  TEN = 10;
+  JACK = 11;
+  QUEEN = 12;
+  KING = 13;
+  ACE = 14;
+}
+enum Suit {
+  SUIT_UNSPECIFIED = 0;
+  SPADES = 1;
+  CLUBS = 2;
+  HEARTS = 3;
+  DIAMONDS = 4;
+}
+
+message Card {
+  Rank rank = 1;
+  Suit suit = 2;
+}

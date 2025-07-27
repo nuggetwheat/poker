@@ -2,158 +2,115 @@
 #define POKER_H
 
 #include <algorithm>
+#include <cassert>
+#include <cstring>
+#include <iostream>
+#include <random>
 #include <vector>
 
-enum class Rank {
-  ACE = 1,
-  TWO,
-  THREE,
-  FOUR,
-  FIVE,
-  SIX,
-  SEVEN,
-  EIGHT,
-  NINE,
-  TEN,
-  JACK,
-  QUEEN,
-  KING,
-};
+#include "cards.h"
+#include "cards.pb.h"
+#include "poker.pb.h"
 
-std::wostream& operator<<(std::wostream& os, const Rank& rank) {
-  switch (rank) {
-  case Rank::ACE:
-    os << L"A";
-    break;
-  case Rank::TWO:
-    os << L"2";
-    break;
-  case Rank::THREE:
-    os << L"3";
-    break;
-  case Rank::FOUR:
-    os << L"4";
-    break;
-  case Rank::FIVE:
-    os << L"5";
-    break;
-  case Rank::SIX:
-    os << L"6";
-    break;
-  case Rank::SEVEN:
-    os << L"7";
-    break;
-  case Rank::EIGHT:
-    os << L"8";
-    break;
-  case Rank::NINE:
-    os << L"9";
-    break;
-  case Rank::TEN:
-    os << L"T";
-    break;
-  case Rank::JACK:
-    os << L"J";
-    break;
-  case Rank::QUEEN:
-    os << L"Q";
-    break;
-  case Rank::KING:
-    os << L"K";
-    break;
-  default:
-    os << L"?";
-    break;
-  }
-  return os;
-}
+namespace poker {
 
-enum class Suit {
-  SPADES,
-  CLUBS,
-  HEARTS,
-  DIAMONDS,
-};
+std::ostream& operator<<(std::ostream& os, const Hand& hand);
 
-std::wostream& operator<<(std::wostream& os, const Suit& suit) {
-  switch (suit) {
-  case Suit::SPADES:
-    os << L"\xE2\x99\xA0";
-    break;
-  case Suit::CLUBS:
-    os << L"\xE2\x99\xA3";
-    break;
-  case Suit::HEARTS:
-    os << L"\xE2\x99\xA5";
-    break;
-  case Suit::DIAMONDS:
-    os << L"\xE2\x99\xA6";
-    break;
-  default:
-    os << L"?";
-    break;
-  }
-  return os;
-}
-
-class Card {
+class HandEvaluator {
 public:
-  Card(enum Rank rank, enum Suit suit) : rank_(rank), suit_(suit) {}
-  Rank Rank() const { return rank_; }
-  Suit Suit() const { return suit_; }
+  void Reset(const std::vector<Card>& community);
+  Hand Evaluate(const std::vector<Card>& hole);
 private:
-  enum Rank rank_;
-  enum Suit suit_;
+  static const int MAX_RANK = static_cast<int>(Rank_ARRAYSIZE);
+  static const int MAX_SUIT = static_cast<int>(Suit_ARRAYSIZE);
+  int rank_reset_limit_[MAX_RANK];
+  int suit_reset_limit_[MAX_SUIT];
+  std::vector<Suit> rank_[MAX_RANK];
+  std::vector<Rank> suit_[MAX_SUIT];
 };
 
-std::wostream& operator<<(std::wostream& os, const Card& card) {
-  os << card.Rank() << card.Suit();
-  return os;
-}
-
-class Deck {
+template <typename RNG>
+class Game {
 public:
-  Deck() {
-    for (Suit suit : {Suit::SPADES, Suit::CLUBS, Suit::HEARTS, Suit::DIAMONDS}) {
-      for (Rank rank : {Rank::ACE, Rank::TWO, Rank::THREE, Rank::FOUR, Rank::FIVE, Rank::SIX, Rank::SEVEN, Rank::EIGHT, Rank::NINE, Rank::TEN, Rank::JACK, Rank::QUEEN, Rank::KING}) {
-	cards.push_back(Card(rank, suit));
-      }
-    }
-  }
-  template <typename URBG>
-  void Shuffle(URBG& rng) {
-    std::shuffle(cards.begin(), cards.end(), rng);
-  }
-  const std::vector<Card>& Cards() const { return cards; }
-private:
-  std::vector<Card> cards;
-};
-
-std::wostream& operator<<(std::wostream& os, const Deck& deck) {
-  bool after_first{};
-  for (Card card : deck.Cards()) {
-    if (after_first) {
-      os << L" " << card;
+  Game(std::vector<Player>& players, RNG& rng)
+    : rng_(rng), players_(players), button_(-1) { }
+  
+  void ResetForNextHand() {
+    std::for_each(players_.begin(), players_.end(), [](Player& player) {
+      player.clear_cards();
+    });
+    deck_.Shuffle(rng_);
+    if (button_ == -1) {
+      std::uniform_int_distribution<int> di(0, players_.size()-1);
+      button_ = di(rng_);
     } else {
-      os << card;
-      after_first = true;
+      button_ = RotatePosition(button_, -1);
     }
   }
-  return os;
-}
-
-class Player {
-public:
-private:
-  std::string name;
-  std::vector<Card> hand;
+  int button() { return button_; }
+  
+protected:
+  int RotatePosition(int position, int offset) {
+    assert(position < players_.size());
+    position += offset;
+    if (position < 0) {
+      position += players_.size();
+    } else if (position >= players_.size()) {
+      position -= players_.size();
+    }
+    return position;
+  }
+  Deck& deck() { return deck_; }
+  std::vector<Player>& players() { return players_; };
+  
+  RNG& rng_;
+  Deck deck_;
+  std::vector<Player> players_;
+  int button_;
 };
 
 class Table {
 public:
+  Table(int nplayers) : players_(nplayers), button_(-1) { }
+  template <typename URBG>
+  void NewGame(URBG& rng) {
+    for (Player& player : players_) {
+      player.clear_cards();
+    }
+    if (button_ == -1) {
+      std::uniform_int_distribution<int> di(0, players_.size()-1);
+      button_ = di(rng);
+    } else {
+      if (button_ == 0) {
+	button_ = players_.size() - 1;
+      } else {
+	button_--;
+      }
+    }
+    SetNextPlayer(-1);
+    deck_.Shuffle(rng);
+  }
 protected:
-  std::vector<Player> players;
-  Deck deck;
+  void SetNextPlayer(int from_button) {
+    next_player_ += from_button;
+    if (next_player_ < 0) {
+      next_player_ += players_.size();
+    } else if (next_player_ >= players_.size()) {
+      next_player_ -= players_.size();
+    }
+  }
+  void NextPlayer() {
+    if (--next_player_ < 0) {
+      next_player_ += players_.size();
+    }
+  }
+  std::vector<Player> players_;
+  int button_;
+  int next_player_;
+  Deck deck_;
+  std::vector<Card> community_cards_;
 };
+
+} // namespace poker
 
 #endif // POKER_H
