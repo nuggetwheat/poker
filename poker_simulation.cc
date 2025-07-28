@@ -1,27 +1,22 @@
+#include <ctime>
 #include <iostream>
 #include <random>
-#include <ctime>
+#include <vector>
 
+#include "poker.pb.h"
 #include "cards.h"
 #include "holdem.h"
 
 int main() {
   std::mt19937 rng(static_cast<unsigned int>(std::time(0)));
-  Deck deck;
-  deck.Shuffle(rng);
-  std::wcout << "\n[random]\n";
-  std::wcout << deck << std::endl;
-  deck.Sort(ByRankAceHighSortFn);
-  std::wcout << "\n[by rank ace high]\n";
-  std::wcout << deck << std::endl;
-  deck.Sort(ByRankAceLowSortFn);
-  std::wcout << "\n[by rank ace low]\n";
-  std::wcout << deck << std::endl;
-  deck.Sort(BySuitAceHighSortFn);
-  std::wcout << "\n[by suit ace high]\n";
-  std::wcout << deck << std::endl;
-  deck.Sort(BySuitAceLowSortFn);
-  std::wcout << "\n[by suit ace low]\n";
-  std::wcout << deck << std::endl;
+  std::vector<poker::Player> players(10);
+  poker::holdem::Game<std::mt19937, poker::holdem::Statistics> game(players, rng);
+  poker::holdem::Statistics stats;
+
+  for (int i=0; i<100'000'000; i++) {
+    game.Play(stats);
+  }
+  stats.Display();
+
   return 0;
 }

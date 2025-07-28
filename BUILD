@@ -33,6 +33,7 @@ cc_library(
     ],
     srcs = [
         "cards.cc",
+        "holdem.cc",
         "poker.cc",
     ],
     deps = [

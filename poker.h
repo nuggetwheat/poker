@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <functional>
 #include <iostream>
 #include <random>
 #include <vector>
@@ -12,9 +13,27 @@
 #include "cards.pb.h"
 #include "poker.pb.h"
 
+template<>
+struct std::hash<poker::Hand>
+{
+  std::size_t operator()(const poker::Hand& hand) const noexcept {
+    return static_cast<size_t>(hand.sort_code());
+  }
+};
+
 namespace poker {
 
+inline bool operator==(const Hand& lhs, const Hand& rhs)
+{
+  return lhs.sort_code() == rhs.sort_code();
+}
+
 std::ostream& operator<<(std::ostream& os, const Hand& hand);
+
+void SetSortCode(Hand& hand);
+
+Hand HoleHand(Card card1, Card card2);
+Hand HoleHand(Rank rank1, Rank rank2, HandType hand_type);
 
 class HandEvaluator {
 public:

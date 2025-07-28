@@ -13,6 +13,10 @@ std::wostream& operator<<(std::wostream& os, const Rank& rank);
 std::wostream& operator<<(std::wostream& os, const Suit& suit);
 std::wostream& operator<<(std::wostream& os, const Card& card);
 
+inline Rank OffsetRank(Rank rank, int offset) {
+  return static_cast<Rank>(static_cast<int>(rank) + offset);
+}
+
 inline int ByRankAceHighSortFn(Card lhs, Card rhs) {
   if (lhs.rank() == rhs.rank())
     return lhs.suit() < rhs.suit();
@@ -73,7 +77,7 @@ public:
     next_ = 0;
   }
   const std::vector<Card>& Cards() const { return cards_; }
-  Card DealCard() { return cards_[next_--]; }
+  Card DealCard() { return cards_[next_++]; }
 private:
   std::vector<Card> cards_;
   int next_;
