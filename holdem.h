@@ -82,30 +82,6 @@ void Game<RNG, STATS>::Deal(Round round) {
   };
 }
 
-class Statistics {
-public:
-  Statistics();
-  void NewGame(std::vector<Player>& players,
-               std::vector<Card>& community_cards);
-  void Collect(Round round);
-  void Display();
-
-private:
-  std::vector<Player>* players_;
-  std::vector<Card>* community_cards_;
-  std::unordered_map<Hand, int> hand_index_;
-  std::unique_ptr<std::vector<int>[]> beat_matrix_;
-
-  struct PlayerInfoT {
-    Player* player;
-    Hand hole_hand;
-    Hand hand;
-  };
-  std::vector<PlayerInfoT> player_info_;
-  // Winning hole cards distribution
-  // Winning hand distribution
-};
-
 } // namespace poker::holdem
 
 #endif // HOLDEM_H

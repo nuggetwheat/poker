@@ -3,17 +3,25 @@
 #include <random>
 #include <vector>
 
-#include "poker.pb.h"
 #include "cards.h"
 #include "holdem.h"
+#include "holdem_stats.h"
+#include "poker.pb.h"
+#include "poker_simulation_args.h"
 
-int main() {
+int main(int argc, char *argv[]) {
+  PokerSimulationArgs args = ParseArgs(argc, argv);
+  args.Display();
+
   std::mt19937 rng(static_cast<unsigned int>(std::time(0)));
-  std::vector<poker::Player> players(10);
+  std::vector<poker::Player> players(args.players);
   poker::holdem::Game<std::mt19937, poker::holdem::Statistics> game(players, rng);
-  poker::holdem::Statistics stats;
+  poker::holdem::Statistics stats(args);
 
-  for (int i=0; i<100'000'000; i++) {
+  for (int i=0; i<args.iterations; i++) {
+    if (i > 0 && i % 1'000'000 == 0) {
+      std::cout << "Completed " << i << " games." << std::endl;
+    }
     game.Play(stats);
   }
   stats.Display();

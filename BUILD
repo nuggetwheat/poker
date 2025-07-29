@@ -33,7 +33,6 @@ cc_library(
     ],
     srcs = [
         "cards.cc",
-        "holdem.cc",
         "poker.cc",
     ],
     deps = [
@@ -42,13 +41,34 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "statistics",
+    hdrs = [
+        "holdem_stats.h",
+        "poker_simulation_args.h",
+    ],
+    srcs = [
+        "holdem_stats.cc",
+    ],
+    deps = [
+        ":poker",
+        ":cards_cc_proto",
+        ":poker_cc_proto",
+    ],
+)
+
 cc_binary(
     name = "poker_simulation",
-    srcs = ["poker_simulation.cc"],
+    srcs = [
+        "poker_simulation.cc",
+        "poker_simulation_args.cc",
+        "poker_simulation_args.h",
+    ],
     deps = [
         ":cards_cc_proto",
         ":poker_cc_proto",
         ":poker",
+        ":statistics",
         "@com_google_protobuf//:protobuf",
     ],
     copts = ["-std=c++17"]

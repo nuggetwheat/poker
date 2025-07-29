@@ -4,37 +4,34 @@
 
 namespace poker {
 
-std::ostream& operator<<(std::ostream& os, const Hand& hand) {
-  for (int rank : hand.rank()) {
-    os << static_cast<Rank>(rank);
-  }
-  switch (hand.type()) {
+std::ostream& operator<<(std::ostream& os, const HandType& type) {
+  switch (type) {
   case HandType::STRAIGHT_FLUSH:
-    os << " (straight-flush)";
+    os << "straight-flush";
     break;
   case HandType::FOUR_OF_A_KIND:
-    os << " (four-of-a-kind)";
+    os << "four-of-a-kind";
     break;
   case HandType::FULL_HOUSE:
-    os << " (full-house)";
+    os << "full-house";
     break;
   case HandType::FLUSH:
-    os << " (flush)";
+    os << "flush";
     break;
   case HandType::STRAIGHT:
-    os << " (straight)";
+    os << "straight";
     break;
   case HandType::THREE_OF_A_KIND:
-    os << " (three-of-a-kind)";
+    os << "three-of-a-kind";
     break;
   case HandType::TWO_PAIR:
-    os << " (two-pair)";
+    os << "two-pair";
     break;
   case HandType::ONE_PAIR:
-    os << " (one-pair)";
+    os << "one-pair";
     break;
   case HandType::HIGH_CARD:
-    os << " (high-card)";
+    os << "high-card";
     break;
   default:
     os << "?";
@@ -42,8 +39,16 @@ std::ostream& operator<<(std::ostream& os, const Hand& hand) {
   return os;
 }
 
-void SetSortCode(Hand& hand) {
-  int32_t sort_code = hand.type() << 24;
+std::ostream& operator<<(std::ostream& os, const Hand& hand) {
+  for (int rank : hand.rank()) {
+    os << static_cast<Rank>(rank);
+  }
+  os << " (" << hand.type() << ")";
+  return os;
+}
+
+int32_t HandToSortCode(Hand& hand) {
+  int32_t sort_code = hand.type() << 20;
   switch (hand.rank_size()) {
   case 5:
     sort_code |= hand.rank(4);
@@ -58,7 +63,18 @@ void SetSortCode(Hand& hand) {
   default:
     break;
   }
-  hand.set_sort_code(sort_code);
+  return sort_code;
+}
+
+Hand SortCodeToHand(int32_t sort_code) {
+  Hand hand;
+  hand.set_type(static_cast<HandType>((sort_code & 0xF00000) >> 20));
+  hand.add_rank(static_cast<Rank>((sort_code & 0x0F0000) >> 16));
+  hand.add_rank(static_cast<Rank>((sort_code & 0x00F000) >> 12));
+  hand.add_rank(static_cast<Rank>((sort_code & 0x000F00) >> 8));
+  hand.add_rank(static_cast<Rank>((sort_code & 0x0000F0) >> 4));
+  hand.add_rank(static_cast<Rank>(sort_code & 0x00000F));
+  return hand;
 }
 
 Hand HoleHand(Card card1, Card card2) {
@@ -77,7 +93,7 @@ Hand HoleHand(Card card1, Card card2) {
     hand.add_rank(card2.rank());
     hand.add_rank(card1.rank());
   }
-  SetSortCode(hand);
+  hand.set_sort_code(HandToSortCode(hand));
   return hand;
 }
 
@@ -91,7 +107,7 @@ Hand HoleHand(Rank rank1, Rank rank2, HandType hand_type) {
     hand.add_rank(rank2);
     hand.add_rank(rank1);
   }
-  SetSortCode(hand);
+  hand.set_sort_code(HandToSortCode(hand));
   return hand;
 }
 
@@ -116,7 +132,7 @@ void HandEvaluator::Reset(const std::vector<Card>& community) {
     suit_reset_limit_[suiti] = suit_[suiti].size();
   }
 }
-  
+
 Hand HandEvaluator::Evaluate(const std::vector<Card>& hole) {
   for (Card card : hole) {
     rank_[static_cast<int>(card.rank())].push_back(card.suit());
@@ -140,7 +156,10 @@ Hand HandEvaluator::Evaluate(const std::vector<Card>& hole) {
   Rank trips = Rank::RANK_UNSPECIFIED;
   Rank pair_high = Rank::RANK_UNSPECIFIED;
   Rank pair_low = Rank::RANK_UNSPECIFIED;
-  
+  Rank full_house[2];
+  full_house[0] = Rank::RANK_UNSPECIFIED;
+  full_house[1] = Rank::RANK_UNSPECIFIED;
+
   for (int i=static_cast<int>(Rank::ACE); i>0; i--) {
     rank_count[i] = rank_[i].size();
 
@@ -162,6 +181,11 @@ Hand HandEvaluator::Evaluate(const std::vector<Card>& hole) {
       }
     }
 
+    // Since we copied Rank::ACE to Rank::ONE for straight computation purposes,
+    // we can bail out here when we hit Rank::ONE
+    if (i == 1)
+      break;
+
     // Four-of-a-kind
     if (rank_[i].size() == 4 && best_hand_type < HandType::FOUR_OF_A_KIND) {
       set_best_hand(HandType::FOUR_OF_A_KIND);
@@ -171,34 +195,32 @@ Hand HandEvaluator::Evaluate(const std::vector<Card>& hole) {
     // Three-of-a-kind
     if (rank_[i].size() == 3) {
       if (trips == Rank::RANK_UNSPECIFIED) {
-        if (pair_high != Rank::RANK_UNSPECIFIED) {
+        trips = static_cast<Rank>(i);
+        full_house[0] = static_cast<Rank>(i);
+        if (full_house[1] != Rank::RANK_UNSPECIFIED) {
           set_best_hand(HandType::FULL_HOUSE);
         } else {
           set_best_hand(HandType::THREE_OF_A_KIND);
         }
-        trips = static_cast<Rank>(i);
-      } else {
-        if (pair_high == Rank::RANK_UNSPECIFIED) {
-          set_best_hand(HandType::ONE_PAIR);
-          pair_high = static_cast<Rank>(i);
-        } else if (pair_low == Rank::RANK_UNSPECIFIED) {
-          set_best_hand(HandType::TWO_PAIR);
-          pair_low = static_cast<Rank>(i);
-        }
+      } else if (full_house[1] == Rank::RANK_UNSPECIFIED) {
+        full_house[1] = static_cast<Rank>(i);
+        set_best_hand(HandType::FULL_HOUSE);
       }
     }
 
     // Pair
     if (rank_[i].size() == 2) {
       if (pair_high == Rank::RANK_UNSPECIFIED) {
-        set_best_hand(HandType::ONE_PAIR);
         pair_high = static_cast<Rank>(i);
+        full_house[1] = static_cast<Rank>(i);
+        if (full_house[0] != Rank::RANK_UNSPECIFIED) {
+          set_best_hand(HandType::FULL_HOUSE);
+        } else {
+          set_best_hand(HandType::ONE_PAIR);
+        }
       } else if (pair_low == Rank::RANK_UNSPECIFIED) {
-        set_best_hand(HandType::TWO_PAIR);
         pair_low = static_cast<Rank>(i);
-      }
-      if (trips != Rank::RANK_UNSPECIFIED) {
-        set_best_hand(HandType::FULL_HOUSE);
+        set_best_hand(HandType::TWO_PAIR);
       }
     }
   }
@@ -271,10 +293,10 @@ Hand HandEvaluator::Evaluate(const std::vector<Card>& hole) {
     } else if (best_hand_type == HandType::FULL_HOUSE) {
       hand.set_type(HandType::FULL_HOUSE);
       for (; ki < 3; ki++) {
-        hand.add_rank(trips);
+        hand.add_rank(full_house[0]);
       }
       for (; ki < 5; ki++) {
-        hand.add_rank(pair_high);
+        hand.add_rank(full_house[1]);
       }
     } else if (best_hand_type == HandType::STRAIGHT) {
       hand.set_type(HandType::STRAIGHT);
@@ -334,8 +356,8 @@ Hand HandEvaluator::Evaluate(const std::vector<Card>& hole) {
   }
   rank_[1].clear();
 
-  SetSortCode(hand);
+  hand.set_sort_code(HandToSortCode(hand));
   return hand;
-}  
+}
 
 } // namespace poker

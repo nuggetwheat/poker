@@ -28,9 +28,11 @@ inline bool operator==(const Hand& lhs, const Hand& rhs)
   return lhs.sort_code() == rhs.sort_code();
 }
 
+std::ostream& operator<<(std::ostream& os, const HandType& type);
 std::ostream& operator<<(std::ostream& os, const Hand& hand);
 
-void SetSortCode(Hand& hand);
+int32_t HandToSortCode(Hand& hand);
+Hand SortCodeToHand(int32_t sort_code);
 
 Hand HoleHand(Card card1, Card card2);
 Hand HoleHand(Rank rank1, Rank rank2, HandType hand_type);
@@ -53,7 +55,7 @@ class Game {
 public:
   Game(std::vector<Player>& players, RNG& rng)
     : rng_(rng), players_(players), button_(-1) { }
-  
+
   void ResetForNextHand() {
     std::for_each(players_.begin(), players_.end(), [](Player& player) {
       player.clear_cards();
@@ -67,7 +69,7 @@ public:
     }
   }
   int button() { return button_; }
-  
+
 protected:
   int RotatePosition(int position, int offset) {
     assert(position < players_.size());
@@ -81,7 +83,7 @@ protected:
   }
   Deck& deck() { return deck_; }
   std::vector<Player>& players() { return players_; };
-  
+
   RNG& rng_;
   Deck deck_;
   std::vector<Player> players_;
