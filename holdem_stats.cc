@@ -105,9 +105,14 @@ struct WinStatsT {
   Hand hand;
   int wins;
 };
+std::string FlushSuffix(Hand& hand) {
+  if (hand.type() == HandType::FLUSH || hand.type() == HandType::STRAIGHT_FLUSH)
+    return "s";
+  return "";
+}
 }
 
-void Statistics::Display() {
+void Statistics::Display(std::ostream& os) {
   if (args_.stats_hole_cards) {
     std::vector<WinStatsT> win_stats(hand_index_.size());
     for (auto const& [hand, index] : hand_index_) {
@@ -127,15 +132,15 @@ void Statistics::Display() {
                 return lhs.wins > rhs.wins;
               });
     for (const WinStatsT& stats : win_stats) {
-      std::cout << stats.hand.rank(0) << stats.hand.rank(1);
+      os << stats.hand.rank(0) << stats.hand.rank(1);
       if (stats.hand.type() == HandType::FLUSH) {
-        std::cout << "s,";
+        os << "s,";
       } else if (stats.hand.type() == HandType::HIGH_CARD) {
-        std::cout << "o,";
+        os << "o,";
       } else {
-        std::cout << ",";
+        os << ",";
       }
-      std::cout << stats.wins << std::endl;
+      os << stats.wins << std::endl;
     }
   }
   if (args_.stats_winning_hand) {
@@ -175,15 +180,34 @@ void Statistics::Display() {
     while (hand_win_count_[plus_stddev_offset] == 0) {
       plus_stddev_offset++;
     }
-    std::cout << "[winning hand]" << std::endl;
-    std::cout << "+sigma: " << SortCodeToHand(plus_stddev_offset) << std::endl;
-    std::cout << "median: " << SortCodeToHand(median_offset) << std::endl;
-    std::cout << "-sigma: " << SortCodeToHand(minus_stddev_offset) << std::endl;
-    std::cout << std::fixed << std::setprecision(3);
+    if (!args_.append_output) {
+      os << "Players,-Sigma,Median,+Sigma\n";
+    }
+    std::string flush_suffix;
+    os << players_->size();
+
+    hand = SortCodeToHand(minus_stddev_offset);
+    flush_suffix = FlushSuffix(hand);
+    hand.set_type(HandType::HANDTYPE_UNSPECIFIED);
+    os << "," << hand << flush_suffix;
+
+    hand = SortCodeToHand(median_offset);
+    flush_suffix = FlushSuffix(hand);
+    hand.set_type(HandType::HANDTYPE_UNSPECIFIED);
+    os << "," << hand << flush_suffix;
+
+    hand = SortCodeToHand(plus_stddev_offset);
+    flush_suffix = FlushSuffix(hand);
+    hand.set_type(HandType::HANDTYPE_UNSPECIFIED);
+    os << "," << hand << flush_suffix << std::endl;
+#if 0
+    os << std::fixed << std::setprecision(3);
     for (int i=1; i<10; i++) {
       double percentage = (winning_hand_type_count[i] * 100.0) / args_.iterations;
-      std::cout << std::setw(6) << percentage << "% " << static_cast<poker::HandType>(i) << std::endl;
+      os << std::setw(6) << percentage << "% " << static_cast<poker::HandType>(i) << std::endl;
     }
+#endif
+    os << std::flush;
   }
 }
 

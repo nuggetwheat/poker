@@ -61,6 +61,11 @@ PokerSimulationArgs ParseArgs(int argc, char *argv[]) {
     .help("Output file name")
     .default_value(std::string())
     .store_into(args.output_file);
+  program.add_argument("-a", "--append-output")
+    .help("Append output to output file")
+    .default_value(false)
+    .implicit_value(true)
+    .store_into(args.append_output);
   program.add_argument("--stats:winning-hand")
     .help("Compute winning hand statistics")
     .default_value(false)

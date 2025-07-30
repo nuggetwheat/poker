@@ -43,7 +43,9 @@ std::ostream& operator<<(std::ostream& os, const Hand& hand) {
   for (int rank : hand.rank()) {
     os << static_cast<Rank>(rank);
   }
-  os << " (" << hand.type() << ")";
+  if (hand.type() != HandType::HANDTYPE_UNSPECIFIED) {
+    os << " (" << hand.type() << ")";
+  }
   return os;
 }
 

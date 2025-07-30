@@ -16,7 +16,7 @@ public:
   void NewGame(std::vector<Player>& players,
                std::vector<Card>& community_cards);
   void Collect(Round round);
-  void Display();
+  void Display(std::ostream& os);
 
 private:
   PokerSimulationArgs args_;

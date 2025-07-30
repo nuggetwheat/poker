@@ -63,6 +63,7 @@ cc_binary(
         "poker_simulation.cc",
         "poker_simulation_args.cc",
         "poker_simulation_args.h",
+        "poker_simulation_utils.h",
     ],
     deps = [
         ":cards_cc_proto",
