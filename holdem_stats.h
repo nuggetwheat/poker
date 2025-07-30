@@ -13,20 +13,18 @@ namespace poker::holdem {
 class Statistics {
 public:
   Statistics(PokerSimulationArgs& args);
-  void NewGame(std::vector<Player>& players,
-               std::vector<Card>& community_cards);
+  void NewGame(const poker::Table& table);
   void Collect(Round round);
   void Display(std::ostream& os);
 
 private:
   PokerSimulationArgs args_;
-  std::vector<Player>* players_;
-  std::vector<Card>* community_cards_;
+  const Table* table_;
   std::unordered_map<Hand, int> hand_index_;
   std::unique_ptr<std::vector<int>[]> beat_matrix_;
 
   struct PlayerInfoT {
-    Player* player;
+    const Player* player;
     Hand hole_hand;
     Hand hand;
   };

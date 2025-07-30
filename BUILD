@@ -27,12 +27,15 @@ proto_library(
 cc_library(
     name = "poker",
     hdrs = [
+        "holdem.h",
         "cards.h",
+        "player_model_holdem.h",
+        "player_model.h",
         "poker.h",
-    	"holdem.h",
     ],
     srcs = [
         "cards.cc",
+        "player_model_holdem.cc",
         "poker.cc",
     ],
     deps = [

@@ -45,13 +45,11 @@ Statistics::Statistics(PokerSimulationArgs& args) : args_(args) {
   hand_win_count_ = std::vector<int32_t>(hand.sort_code()+1, 0);
 }
 
-void Statistics::NewGame(std::vector<Player>& players,
-                         std::vector<Card>& community_cards) {
-  players_ = &players;
-  community_cards_ = &community_cards;
-  player_info_.resize(players.size());
-  for (int i=0; i<players.size(); i++) {
-    player_info_[i].player = &players[i];
+void Statistics::NewGame(const poker::Table& table) {
+  table_ = &table;
+  player_info_.resize(table.players().size());
+  for (int i=0; i<table.players().size(); i++) {
+    player_info_[i].player = table.players()[i];
   }
 }
 
@@ -67,7 +65,7 @@ void Statistics::Collect(Round round) {
   case Round::RIVER:
     {
       HandEvaluator he;
-      he.Reset(*community_cards_);
+      he.Reset(table_->community_cards());
       std::vector<Card> cards(2);
       for (auto& info : player_info_) {
         cards[0] = info.player->cards(0);
@@ -184,7 +182,7 @@ void Statistics::Display(std::ostream& os) {
       os << "Players,-Sigma,Median,+Sigma\n";
     }
     std::string flush_suffix;
-    os << players_->size();
+    os << table_->players().size();
 
     hand = SortCodeToHand(minus_stddev_offset);
     flush_suffix = FlushSuffix(hand);
@@ -200,13 +198,13 @@ void Statistics::Display(std::ostream& os) {
     flush_suffix = FlushSuffix(hand);
     hand.set_type(HandType::HANDTYPE_UNSPECIFIED);
     os << "," << hand << flush_suffix << std::endl;
-#if 0
+
     os << std::fixed << std::setprecision(3);
     for (int i=1; i<10; i++) {
       double percentage = (winning_hand_type_count[i] * 100.0) / args_.iterations;
       os << std::setw(6) << percentage << "% " << static_cast<poker::HandType>(i) << std::endl;
     }
-#endif
+
     os << std::flush;
   }
 }

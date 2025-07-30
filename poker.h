@@ -50,25 +50,47 @@ private:
   std::vector<Rank> suit_[MAX_SUIT];
 };
 
+class Table {
+public:
+  const std::vector<const Player*>& players() const { return players_; }
+  void set_players(std::vector<const Player*> players) { players_ = players; }
+
+  int button() const { return button_; }
+  void set_button(int button) { button_ = button; }
+
+  const std::vector<Card>& community_cards() const { return community_cards_; }
+  void add_community_card(Card card) { community_cards_.push_back(card); }
+  void clear_community_cards() { community_cards_.clear(); }
+
+private:
+  std::vector<const Player*> players_;
+  int button_;
+  std::vector<Card> community_cards_;
+};
+
 template <typename RNG>
 class Game {
 public:
-  Game(std::vector<Player>& players, RNG& rng)
-    : rng_(rng), players_(players), button_(-1) { }
+  Game(Table& table, std::vector<Player>& players, RNG& rng)
+    : rng_(rng), table_(table), players_(players) {
+    std::vector<const Player*> table_players;
+    table_players.reserve(players.size());
+    for (const Player& player : players) {
+      table_players.push_back(&player);
+    }
+    table_.set_players(table_players);
+    std::uniform_int_distribution<int> di(0, players_.size()-1);
+    table_.set_button(di(rng_));
+  }
 
   void ResetForNextHand() {
     std::for_each(players_.begin(), players_.end(), [](Player& player) {
       player.clear_cards();
     });
+    table_.clear_community_cards();
     deck_.Shuffle(rng_);
-    if (button_ == -1) {
-      std::uniform_int_distribution<int> di(0, players_.size()-1);
-      button_ = di(rng_);
-    } else {
-      button_ = RotatePosition(button_, -1);
-    }
+    table_.set_button(RotatePosition(table_.button(), -1));
   }
-  int button() { return button_; }
 
 protected:
   int RotatePosition(int position, int offset) {
@@ -83,13 +105,15 @@ protected:
   }
   Deck& deck() { return deck_; }
   std::vector<Player>& players() { return players_; };
+  Table& table() { return table_; }
 
   RNG& rng_;
+  Table& table_;
+  std::vector<Player>& players_;
   Deck deck_;
-  std::vector<Player> players_;
-  int button_;
 };
 
+#if 0
 class Table {
 public:
   Table(int nplayers) : players_(nplayers), button_(-1) { }
@@ -131,6 +155,7 @@ protected:
   Deck deck_;
   std::vector<Card> community_cards_;
 };
+#endif
 
 } // namespace poker
 

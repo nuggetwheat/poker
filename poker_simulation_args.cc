@@ -19,6 +19,7 @@ void PokerSimulationArgs::Display() const {
   } else {
     std::cout << "Output file: " << output_file << std::endl;
   }
+  std::cout << "Player model: " << player_model << std::endl;
   std::cout << "Statistics:";
   bool stats_output = false;
   if (stats_winning_hand) {
@@ -61,6 +62,10 @@ PokerSimulationArgs ParseArgs(int argc, char *argv[]) {
     .help("Output file name")
     .default_value(std::string())
     .store_into(args.output_file);
+  program.add_argument("-m", "--player-model")
+    .help("Player model (showdown)")
+    .default_value(std::string("showdown"))
+    .store_into(args.player_model);
   program.add_argument("-a", "--append-output")
     .help("Append output to output file")
     .default_value(false)
