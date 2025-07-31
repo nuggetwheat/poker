@@ -76,14 +76,22 @@ void Statistics::Collect(Round round) {
                 [](const PlayerInfoT& lhs, const PlayerInfoT& rhs) {
                   return lhs.hand.sort_code() > rhs.hand.sort_code();
                 });
+
+      int32_t prev_sort_code = 0;
       if (args_.stats_hole_cards) {
         for (int i=0; i<player_info_.size()-1; i++) {
+          prev_sort_code = player_info_[i].hand.sort_code();
           for (int j=i+1; j<player_info_.size(); j++) {
-            if (player_info_[i].hand.sort_code() > player_info_[j].hand.sort_code()) {
+            // Only increment win count for distinct hands and for each distinct
+            // pair of hands, only increment win count once. On other words,
+            // given the following four hands (AA, AA, KTo, KTo), we should not increment
+            // [AA][AA] or [KTo][KTo] and we should only increment [AA][KTo] once.
+            if (player_info_[j].hand.sort_code() != prev_sort_code) {
               int win_index = hand_index_[player_info_[i].hole_hand];
               int lose_index = hand_index_[player_info_[j].hole_hand];
               beat_matrix_[win_index][lose_index]++;
             }
+            prev_sort_code = player_info_[i].hand.sort_code();
           }
         }
       }
@@ -158,6 +166,7 @@ void Statistics::Display(std::ostream& os) {
       count += hand_win_count_[i];
     }
 
+#if 0
     // Compute standard deviation
     uint64_t deviation = 0;
     for (uint32_t i=0; i<hand_win_count_.size(); i++) {
@@ -178,18 +187,26 @@ void Statistics::Display(std::ostream& os) {
     while (hand_win_count_[plus_stddev_offset] == 0) {
       plus_stddev_offset++;
     }
+#endif
+
     if (!args_.append_output) {
-      os << "Players,-Sigma,Median,+Sigma\n";
+      os << "Players,High Card,One Pair,Two Pair,Three Of A Kind,Straight,Flush,Full House,Four Of A Kind,Straight Flush,Median\n";
     }
     std::string flush_suffix;
-    os << table_->players().size();
+    os << table_->players().size() << ",";
 
-    hand = SortCodeToHand(minus_stddev_offset);
+    os << std::fixed << std::setprecision(3);
+    for (int i=1; i<10; i++) {
+      double percentage = (winning_hand_type_count[i] * 100.0) / args_.iterations;
+      os << percentage << "%,";
+    }
+    hand = SortCodeToHand(median_offset);
     flush_suffix = FlushSuffix(hand);
     hand.set_type(HandType::HANDTYPE_UNSPECIFIED);
-    os << "," << hand << flush_suffix;
+    os << hand << flush_suffix << std::endl;
 
-    hand = SortCodeToHand(median_offset);
+#if 0
+    hand = SortCodeToHand(minus_stddev_offset);
     flush_suffix = FlushSuffix(hand);
     hand.set_type(HandType::HANDTYPE_UNSPECIFIED);
     os << "," << hand << flush_suffix;
@@ -198,12 +215,7 @@ void Statistics::Display(std::ostream& os) {
     flush_suffix = FlushSuffix(hand);
     hand.set_type(HandType::HANDTYPE_UNSPECIFIED);
     os << "," << hand << flush_suffix << std::endl;
-
-    os << std::fixed << std::setprecision(3);
-    for (int i=1; i<10; i++) {
-      double percentage = (winning_hand_type_count[i] * 100.0) / args_.iterations;
-      os << std::setw(6) << percentage << "% " << static_cast<poker::HandType>(i) << std::endl;
-    }
+#endif
 
     os << std::flush;
   }
