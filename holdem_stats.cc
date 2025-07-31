@@ -1,6 +1,7 @@
 #include "holdem_stats.h"
 
 #include <iostream>
+#include <vector>
 
 #include "cards.pb.h"
 #include "holdem.h"
@@ -45,11 +46,12 @@ Statistics::Statistics(PokerSimulationArgs& args) : args_(args) {
   hand_win_count_ = std::vector<int32_t>(hand.sort_code()+1, 0);
 }
 
-void Statistics::NewGame(const poker::Table& table) {
+void Statistics::NewGame(const poker::Table& table,
+                         std::vector<Player>& players) {
   table_ = &table;
-  player_info_.resize(table.players().size());
-  for (int i=0; i<table.players().size(); i++) {
-    player_info_[i].player = table.players()[i];
+  players_.resize(players.size());
+  for (int i=0; i<players.size(); i++) {
+    players_[i] = &players[i];
   }
 }
 
@@ -57,8 +59,8 @@ void Statistics::Collect(Round round) {
   switch (round) {
   case Round::INITIAL:
     if (args_.stats_hole_cards) {
-      for (auto& info : player_info_) {
-        info.hole_hand = HoleHand(info.player->cards(0), info.player->cards(1));
+      for (Player* player : players_) {
+        player->set_preflop_hand(HoleHand(player->cards()));
       }
     }
     break;
@@ -66,37 +68,35 @@ void Statistics::Collect(Round round) {
     {
       HandEvaluator he;
       he.Reset(table_->community_cards());
-      std::vector<Card> cards(2);
-      for (auto& info : player_info_) {
-        cards[0] = info.player->cards(0);
-        cards[1] = info.player->cards(1);
-        info.hand = he.Evaluate(cards);
+      for (Player* player : players_) {
+        player->set_river_hand(he.Evaluate(player->cards()));
       }
-      std::sort(player_info_.begin(), player_info_.end(),
-                [](const PlayerInfoT& lhs, const PlayerInfoT& rhs) {
-                  return lhs.hand.sort_code() > rhs.hand.sort_code();
+      std::sort(players_.begin(), players_.end(),
+                [](Player* lhs, Player* rhs) {
+                  return lhs->river_hand().sort_code() > rhs->river_hand().sort_code();
                 });
 
       int32_t prev_sort_code = 0;
       if (args_.stats_hole_cards) {
-        for (int i=0; i<player_info_.size()-1; i++) {
-          prev_sort_code = player_info_[i].hand.sort_code();
-          for (int j=i+1; j<player_info_.size(); j++) {
+        for (int i=0; i<players_.size()-1; i++) {
+          prev_sort_code = players_[i]->river_hand().sort_code();
+          for (int j=i+1; j<players_.size(); j++) {
             // Only increment win count for distinct hands and for each distinct
             // pair of hands, only increment win count once. On other words,
-            // given the following four hands (AA, AA, KTo, KTo), we should not increment
-            // [AA][AA] or [KTo][KTo] and we should only increment [AA][KTo] once.
-            if (player_info_[j].hand.sort_code() != prev_sort_code) {
-              int win_index = hand_index_[player_info_[i].hole_hand];
-              int lose_index = hand_index_[player_info_[j].hole_hand];
+            // given the following four hands (AA, AA, KTo, KTo), we should not
+            // increment [AA][AA] or [KTo][KTo] and we should only increment
+            // [AA][KTo] once.
+            if (players_[j]->river_hand().sort_code() != prev_sort_code) {
+              int win_index = hand_index_[players_[i]->preflop_hand()];
+              int lose_index = hand_index_[players_[j]->preflop_hand()];
               beat_matrix_[win_index][lose_index]++;
             }
-            prev_sort_code = player_info_[i].hand.sort_code();
+            prev_sort_code = players_[i]->river_hand().sort_code();
           }
         }
       }
       if (args_.stats_winning_hand) {
-        hand_win_count_[player_info_[0].hand.sort_code()]++;
+        hand_win_count_[players_[0]->river_hand().sort_code()]++;
       }
     }
     break;

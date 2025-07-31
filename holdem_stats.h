@@ -13,25 +13,18 @@ namespace poker::holdem {
 class Statistics {
 public:
   Statistics(PokerSimulationArgs& args);
-  void NewGame(const poker::Table& table);
+  void NewGame(const poker::Table& table, std::vector<Player>& players);
   void Collect(Round round);
   void Display(std::ostream& os);
 
 private:
   PokerSimulationArgs args_;
   const Table* table_;
+  std::vector<Player*> players_;
   std::unordered_map<Hand, int> hand_index_;
   std::unique_ptr<std::vector<int>[]> beat_matrix_;
-
-  struct PlayerInfoT {
-    const Player* player;
-    Hand hole_hand;
-    Hand hand;
-  };
-  std::vector<PlayerInfoT> player_info_;
   std::vector<int32_t> hand_win_count_;
   // Winning hole cards distribution
-  // Winning hand distribution
 };
 
 } // namespace poker::holdem

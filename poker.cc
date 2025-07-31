@@ -79,40 +79,6 @@ Hand SortCodeToHand(int32_t sort_code) {
   return hand;
 }
 
-Hand HoleHand(Card card1, Card card2) {
-  Hand hand;
-  if (card1.rank() == card2.rank()) {
-    hand.set_type(HandType::ONE_PAIR);
-  } else if (card1.suit() == card2.suit()) {
-    hand.set_type(HandType::FLUSH);
-  } else {
-    hand.set_type(HandType::HIGH_CARD);
-  }
-  if (card1.rank() > card2.rank()) {
-    hand.add_rank(card1.rank());
-    hand.add_rank(card2.rank());
-  } else {
-    hand.add_rank(card2.rank());
-    hand.add_rank(card1.rank());
-  }
-  hand.set_sort_code(HandToSortCode(hand));
-  return hand;
-}
-
-Hand HoleHand(Rank rank1, Rank rank2, HandType hand_type) {
-  Hand hand;
-  hand.set_type(hand_type);
-  if (rank1 > rank2) {
-    hand.add_rank(rank1);
-    hand.add_rank(rank2);
-  } else {
-    hand.add_rank(rank2);
-    hand.add_rank(rank1);
-  }
-  hand.set_sort_code(HandToSortCode(hand));
-  return hand;
-}
-
 void HandEvaluator::Reset(const std::vector<Card>& community) {
   // Clear state
   memset(rank_reset_limit_, 0, sizeof(rank_reset_limit_));

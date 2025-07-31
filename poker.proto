@@ -22,7 +22,3 @@ message Hand {
   repeated Rank rank = 2;
   int32 sort_code = 3;
 }
-
-message Player {
-  repeated Card cards = 1;
-}

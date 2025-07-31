@@ -50,25 +50,38 @@ inline std::ostream& operator<<(std::ostream& os, const Round& round) {
   return os;
 }
 
+Hand HoleHand(const std::vector<Card>& cards);
+Hand HoleHand(Rank rank1, Rank rank2, HandType hand_type);
+
 template <typename RNG, typename STATS>
 class Game : public poker::Game<RNG> {
 public:
   using Base = poker::Game<RNG>;
   using poker::Game<RNG>::deck;
-  using poker::Game<RNG>::players;
   using poker::Game<RNG>::table;
 
   Game(Table& table, std::vector<Player>& players,
        poker::holdem::PlayerModelVector&& player_models, STATS& stats, RNG& rng)
-      : Base(table, players, rng),
-        player_models_(std::move(player_models)),
-        stats_(stats) {}
+    : Base(table, players.size(), rng),
+      players_(players),
+      player_models_(std::move(player_models)),
+      stats_(stats) {
+    std::vector<const Player*> table_players;
+    table_players.reserve(players.size());
+    for (const Player& player : players) {
+      table_players.push_back(&player);
+    }
+    table.set_players(table_players);
+  }
 
   void Play() {
     Round round;
+    std::for_each(players_.begin(), players_.end(), [](Player& player) {
+      player.clear_cards();
+    });
     Base::ResetForNextHand();
 
-    stats_.NewGame(table());
+    stats_.NewGame(table(), players_);
 
     round = Round::INITIAL;
     Deal(round);
@@ -88,6 +101,8 @@ public:
   }
 private:
   void Deal(Round round);
+
+  std::vector<Player>& players_;
   poker::holdem::PlayerModelVector player_models_;
   STATS& stats_;
 };
@@ -96,9 +111,9 @@ template <typename RNG, typename STATS>
 void Game<RNG, STATS>::Deal(Round round) {
   switch (round) {
   case Round::INITIAL:
-    for (Player& player : players()) {
-      *player.add_cards() = deck().DealCard();
-      *player.add_cards() = deck().DealCard();
+    for (Player& player : players_) {
+      player.add_card(deck().DealCard());
+      player.add_card(deck().DealCard());
     }
     break;
   case Round::FLOP:

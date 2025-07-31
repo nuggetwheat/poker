@@ -34,9 +34,6 @@ std::ostream& operator<<(std::ostream& os, const Hand& hand);
 int32_t HandToSortCode(Hand& hand);
 Hand SortCodeToHand(int32_t sort_code);
 
-Hand HoleHand(Card card1, Card card2);
-Hand HoleHand(Rank rank1, Rank rank2, HandType hand_type);
-
 class HandEvaluator {
 public:
   void Reset(const std::vector<Card>& community);
@@ -48,6 +45,32 @@ private:
   int suit_reset_limit_[MAX_SUIT];
   std::vector<Suit> rank_[MAX_RANK];
   std::vector<Rank> suit_[MAX_SUIT];
+};
+
+class Player {
+public:
+  const std::vector<Card>& cards() const { return cards_; }
+  void add_card(Card card) { cards_.push_back(card); }
+  void clear_cards() { cards_.clear(); }
+
+  Hand preflop_hand() { return preflop_hand_; }
+  void set_preflop_hand(Hand hand) { preflop_hand_ = hand; }
+
+  Hand flop_hand() { return flop_hand_; }
+  void set_flop_hand(Hand hand) { flop_hand_ = hand; }
+
+  Hand turn_hand() { return turn_hand_; }
+  void set_turn_hand(Hand hand) { turn_hand_ = hand; }
+
+  Hand river_hand() { return river_hand_; }
+  void set_river_hand(Hand hand) { river_hand_ = hand; }
+
+private:
+  std::vector<Card> cards_;
+  Hand preflop_hand_;
+  Hand flop_hand_;
+  Hand turn_hand_;
+  Hand river_hand_;
 };
 
 class Table {
@@ -71,22 +94,13 @@ private:
 template <typename RNG>
 class Game {
 public:
-  Game(Table& table, std::vector<Player>& players, RNG& rng)
-    : rng_(rng), table_(table), players_(players) {
-    std::vector<const Player*> table_players;
-    table_players.reserve(players.size());
-    for (const Player& player : players) {
-      table_players.push_back(&player);
-    }
-    table_.set_players(table_players);
-    std::uniform_int_distribution<int> di(0, players_.size()-1);
+  Game(Table& table, int player_count, RNG& rng)
+    : rng_(rng), table_(table), player_count_(player_count)  {
+    std::uniform_int_distribution<int> di(0, player_count-1);
     table_.set_button(di(rng_));
   }
 
   void ResetForNextHand() {
-    std::for_each(players_.begin(), players_.end(), [](Player& player) {
-      player.clear_cards();
-    });
     table_.clear_community_cards();
     deck_.Shuffle(rng_);
     table_.set_button(RotatePosition(table_.button(), -1));
@@ -94,68 +108,23 @@ public:
 
 protected:
   int RotatePosition(int position, int offset) {
-    assert(position < players_.size());
+    assert(position < player_count_);
     position += offset;
     if (position < 0) {
-      position += players_.size();
-    } else if (position >= players_.size()) {
-      position -= players_.size();
+      position += player_count_;
+    } else if (position >= player_count_) {
+      position -= player_count_;
     }
     return position;
   }
   Deck& deck() { return deck_; }
-  std::vector<Player>& players() { return players_; };
   Table& table() { return table_; }
 
   RNG& rng_;
   Table& table_;
-  std::vector<Player>& players_;
+  int player_count_;
   Deck deck_;
 };
-
-#if 0
-class Table {
-public:
-  Table(int nplayers) : players_(nplayers), button_(-1) { }
-  template <typename URBG>
-  void NewGame(URBG& rng) {
-    for (Player& player : players_) {
-      player.clear_cards();
-    }
-    if (button_ == -1) {
-      std::uniform_int_distribution<int> di(0, players_.size()-1);
-      button_ = di(rng);
-    } else {
-      if (button_ == 0) {
-	button_ = players_.size() - 1;
-      } else {
-	button_--;
-      }
-    }
-    SetNextPlayer(-1);
-    deck_.Shuffle(rng);
-  }
-protected:
-  void SetNextPlayer(int from_button) {
-    next_player_ += from_button;
-    if (next_player_ < 0) {
-      next_player_ += players_.size();
-    } else if (next_player_ >= players_.size()) {
-      next_player_ -= players_.size();
-    }
-  }
-  void NextPlayer() {
-    if (--next_player_ < 0) {
-      next_player_ += players_.size();
-    }
-  }
-  std::vector<Player> players_;
-  int button_;
-  int next_player_;
-  Deck deck_;
-  std::vector<Card> community_cards_;
-};
-#endif
 
 } // namespace poker
 
