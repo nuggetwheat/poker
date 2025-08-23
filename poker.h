@@ -6,6 +6,7 @@
 #include <cstring>
 #include <functional>
 #include <iostream>
+#include <optional>
 #include <random>
 #include <vector>
 
@@ -51,19 +52,23 @@ class Player {
 public:
   const std::vector<Card>& cards() const { return cards_; }
   void add_card(Card card) { cards_.push_back(card); }
-  void clear_cards() { cards_.clear(); }
 
-  Hand preflop_hand() { return preflop_hand_; }
+  const Hand& preflop_hand() const { return preflop_hand_; }
   void set_preflop_hand(Hand hand) { preflop_hand_ = hand; }
 
-  Hand flop_hand() { return flop_hand_; }
+  const Hand& flop_hand() const { return flop_hand_; }
   void set_flop_hand(Hand hand) { flop_hand_ = hand; }
 
-  Hand turn_hand() { return turn_hand_; }
+  const Hand& turn_hand() const { return turn_hand_; }
   void set_turn_hand(Hand hand) { turn_hand_ = hand; }
 
-  Hand river_hand() { return river_hand_; }
+  const Hand& river_hand() const { return river_hand_; }
   void set_river_hand(Hand hand) { river_hand_ = hand; }
+
+  bool folded() const { return folded_; }
+  void fold() { folded_ = true; }
+
+  void reset() { cards_.clear(); folded_ = false; }
 
 private:
   std::vector<Card> cards_;
@@ -71,6 +76,7 @@ private:
   Hand flop_hand_;
   Hand turn_hand_;
   Hand river_hand_;
+  bool folded_{};
 };
 
 class Table {
@@ -110,13 +116,15 @@ protected:
   int RotatePosition(int position, int offset) {
     assert(position < player_count_);
     position += offset;
-    if (position < 0) {
+    while (position < 0) {
       position += player_count_;
-    } else if (position >= player_count_) {
+    }
+    while (position >= player_count_) {
       position -= player_count_;
     }
     return position;
   }
+
   Deck& deck() { return deck_; }
   Table& table() { return table_; }
 

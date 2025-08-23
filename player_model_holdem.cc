@@ -8,7 +8,12 @@ namespace poker::holdem {
 
 PlayerAction PlayerModelShowdown::Act(const Table& table, Round round,
                                       int position, Player& player) {
-  return PlayerAction::CONTINUE;
+  return PlayerAction::CHECK;
+}
+
+PlayerAction PlayerModelMillerTight::Act(const Table& table, Round round,
+                                         int position, Player& player) {
+  return PlayerAction::CHECK;
 }
 
 } // namespace poker::holdem

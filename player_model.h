@@ -3,7 +3,13 @@
 
 namespace poker {
 
-enum class PlayerAction { UNSPECIFIED = 0, FOLD, CONTINUE };
+enum class PlayerAction {
+  UNSPECIFIED = 0,
+  FOLD,
+  CHECK,
+  RAISE,
+  RAISE_ALL_IN
+};
 
 } // namespace poker
 

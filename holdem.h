@@ -1,7 +1,9 @@
 #ifndef HOLDEM_H
 #define HOLDEM_H
 
+#include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <vector>
 #include <unordered_map>
 #include <utility>
@@ -76,36 +78,47 @@ public:
 
   void Play() {
     Round round;
-    std::for_each(players_.begin(), players_.end(), [](Player& player) {
-      player.clear_cards();
-    });
-    Base::ResetForNextHand();
-
-    stats_.NewGame(table(), players_);
+    NewGame();
 
     round = Round::INITIAL;
     Deal(round);
+    BettingRound(round);
     stats_.Collect(round);
 
     round = Round::FLOP;
     Deal(round);
+    BettingRound(round);
     stats_.Collect(round);
 
     round = Round::TURN;
     Deal(round);
+    BettingRound(round);
     stats_.Collect(round);
 
     round = Round::RIVER;
     Deal(round);
+    BettingRound(round);
     stats_.Collect(round);
   }
 private:
+  void NewGame();
   void Deal(Round round);
+  void BettingRound(Round round);
 
   std::vector<Player>& players_;
   poker::holdem::PlayerModelVector player_models_;
   STATS& stats_;
+  bool initial_bet_{};
 };
+
+template <typename RNG, typename STATS>
+void Game<RNG, STATS>::NewGame() {
+  std::for_each(players_.begin(), players_.end(), [](Player& player) {
+    player.reset();
+  });
+  Base::ResetForNextHand();
+  stats_.NewGame(table(), players_);
+}
 
 template <typename RNG, typename STATS>
 void Game<RNG, STATS>::Deal(Round round) {
@@ -131,6 +144,71 @@ void Game<RNG, STATS>::Deal(Round round) {
     assert(false && "Unknown round");
   };
 }
+
+template <typename RNG, typename STATS>
+void Game<RNG, STATS>::BettingRound(Round round) {
+  int starting_offset = (round == Round::INITIAL) ? -3 : -1;
+  int next_to_act = Base::RotatePosition(table().button(), starting_offset);
+
+  for (int remaining = players_.size(); remaining > 0; remaining--) {
+    PlayerAction action = player_models_[next_to_act]->Act(table(), round, next_to_act, players_[next_to_act]);
+    switch (action) {
+    case PlayerAction::CHECK:
+      break;
+    case PlayerAction::FOLD:
+      throw std::logic_error("Unimplemented action: FOLD");
+    case PlayerAction::RAISE:
+      throw std::logic_error("Unimplemented action: RAISE");
+    case PlayerAction::RAISE_ALL_IN:
+      throw std::logic_error("Unimplemented action: RAISE_ALL_IN");
+    default:
+      {
+        std::stringstream ss;
+        ss << "Invalid action value: " << static_cast<int>(action);
+        throw std::logic_error(ss.str());
+      }
+    }
+    next_to_act = Base::RotatePosition(table().button(), -1);
+  }
+}
+
+
+#if 0
+template <typename RNG, typename STATS>
+void Game<RNG, STATS>::BettingRound(Round round) {
+  int starting_player;
+  int next_player;
+  Player* player;
+  switch (round) {
+  case Round::INITIAL:
+    for (int bettor = StartingBettor(round); !BettingFinished(); bettor = NextBettor()) {
+    }
+    starting_player = RotatePosition(table.button(), -2);
+    player = &players[starting_player];
+    if (player_models_[starting_player]->Act() == PlayerAction::FOLD) {
+      player->fold();
+    }
+    for (next_player = RotatePosition(starting_player, -1);
+         next_player != starting_player;
+         next_player = RotatePosition(starting_player, -1)) {
+    }
+    break;
+  case Round::FLOP:
+    table().add_community_card(deck().DealCard());
+    table().add_community_card(deck().DealCard());
+    table().add_community_card(deck().DealCard());
+    break;
+  case Round::TURN:
+    table().add_community_card(deck().DealCard());
+    break;
+  case Round::RIVER:
+    table().add_community_card(deck().DealCard());
+    break;
+  default:
+    assert(false && "Unknown round");
+  };
+}
+#endif
 
 } // namespace poker::holdem
 
