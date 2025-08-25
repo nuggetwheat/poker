@@ -35,6 +35,15 @@ std::ostream& operator<<(std::ostream& os, const Hand& hand);
 int32_t HandToSortCode(Hand& hand);
 Hand SortCodeToHand(int32_t sort_code);
 
+// Returns a string representation of hole cards (e.g. "AA", "KJo", "65s").
+std::string HoleHandToString(const Hand& hand);
+
+// Returns a string representation of hand cards (e.g. "AAJJQ", "KQJT9")
+std::string HandCardsToString(const Hand& hand);
+
+// Returns a string representation of hand cards (e.g. "AAJJQ", "KQJT9")
+std::string CommunityCardsToString(const std::vector<Card>& community_cards);
+
 class HandEvaluator {
 public:
   void Reset(const std::vector<Card>& community);

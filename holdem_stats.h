@@ -23,7 +23,11 @@ private:
   std::vector<Player*> players_;
   std::unordered_map<Hand, int> hand_index_;
   std::unique_ptr<std::vector<int>[]> beat_matrix_;
-  std::vector<int32_t> hand_win_count_;
+  std::vector<int32_t> river_hand_win_count_;
+  std::vector<int32_t> hole_hand_appearance_;
+  std::vector<int32_t> hole_hand_win_;
+  int total_games_{};
+  Hand pocket_aces_;
   // Winning hole cards distribution
 };
 

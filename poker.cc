@@ -79,6 +79,35 @@ Hand SortCodeToHand(int32_t sort_code) {
   return hand;
 }
 
+std::string HoleHandToString(const Hand& hand) {
+  std::stringstream ss;
+  ss << hand.rank(0) << hand.rank(1);
+  if (hand.type() == HandType::FLUSH) {
+    ss << "s";
+  } else if (hand.type() == HandType::HIGH_CARD) {
+    ss << "o";
+  }
+  return ss.str();
+}
+
+std::string HandCardsToString(const Hand& hand) {
+  std::stringstream ss;
+  for (int rank : hand.rank())
+    ss << static_cast<Rank>(rank);
+  if (hand.type() == HandType::FLUSH || hand.type() == HandType::STRAIGHT_FLUSH) {
+    ss << "s";
+  }
+  return ss.str();
+}
+
+std::string CommunityCardsToString(const std::vector<Card>& community_cards) {
+  std::stringstream ss;
+  for (Card card : community_cards) {
+    ss << static_cast<Rank>(card.rank());
+  }
+  return ss.str();
+}
+
 void HandEvaluator::Reset(const std::vector<Card>& community) {
   // Clear state
   memset(rank_reset_limit_, 0, sizeof(rank_reset_limit_));
