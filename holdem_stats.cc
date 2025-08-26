@@ -193,14 +193,26 @@ void Statistics::Display(std::ostream& os) {
     os << std::fixed << std::setprecision(2);
     for (WinStatsT& stats : win_stats) {
       os << HoleHandToString(stats.hand) << std::endl;
+      std::vector<WinStatsT> win_stats_sorted(hand_index_.size());
+      for (auto const& [hand, index] : hand_index_) {
+        win_stats_sorted[index].index = index;
+        win_stats_sorted[index].hand = hand;
+        win_stats_sorted[index].hand_wins = 0;
+        win_stats_sorted[index].win_percentage = win_percentage[stats.index][index];
+      }
+      std::sort(win_stats_sorted.begin(), win_stats_sorted.end(),
+                [](const WinStatsT& lhs, const WinStatsT& rhs) {
+                  return lhs.win_percentage < rhs.win_percentage;
+                });
+
       auto output_win_pct_fn = [&](int i, int j, int stripe_size, int column_size) {
         if (j>0) {
           os << ",";
         }
         int offset = i + (j * stripe_size);
-        if (offset < win_stats.size()) {
-          os << HoleHandToString(win_stats[offset].hand) << ","
-             << win_percentage[stats.index][win_stats[offset].index];
+        if (offset < win_stats_sorted.size()) {
+          os << HoleHandToString(win_stats_sorted[offset].hand) << ","
+             << win_stats_sorted[offset].win_percentage;
         }
         if (j == column_size - 1) {
           os << "\n";
@@ -210,10 +222,6 @@ void Statistics::Display(std::ostream& os) {
     }
   }
   if (args_.stats_winning_hand) {
-    if (total_games_ != args_.iterations) {
-      std::cerr << "total_games (" << total_games_ << ") != iterations (" << args_.iterations << ")\n";
-      exit(1);
-    }
     std::vector<int> winning_hand_type_count(10, 0);
     int median = args_.iterations / 2;
     int count = 0;
