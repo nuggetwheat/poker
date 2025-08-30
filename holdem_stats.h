@@ -15,7 +15,7 @@ public:
   Statistics(PokerSimulationArgs& args);
   void NewGame(const poker::Table& table, std::vector<Player>& players);
   void Collect(Round round);
-  void Display(std::ostream& os);
+  void Display();
 
 private:
   PokerSimulationArgs args_;
@@ -23,7 +23,9 @@ private:
   std::vector<Player*> players_;
   std::unordered_map<Hand, int> hand_index_;
   std::unique_ptr<std::vector<int>[]> beat_matrix_;
-  std::vector<int32_t> river_hand_win_count_;
+  std::vector<int32_t> hand_win_count_flop_;
+  std::vector<int32_t> hand_win_count_turn_;
+  std::vector<int32_t> hand_win_count_river_;
   std::vector<int32_t> hole_hand_appearance_;
   std::vector<int32_t> hole_hand_win_;
   int total_games_{};

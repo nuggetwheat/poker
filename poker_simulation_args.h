@@ -16,7 +16,7 @@ struct PokerSimulationArgs {
   PokerGameType game_type = PokerGameType::UNSPECIFIED;
   int players = 10;
   int iterations = 100'000'000;
-  std::string output_file;
+  std::string output_dir;
   std::string player_model;
   bool append_output = false;
   bool stats_winning_hand = false;

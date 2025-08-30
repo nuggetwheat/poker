@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <ctime>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -38,31 +39,19 @@ int main(int argc, char *argv[]) {
   std::mt19937 rng(static_cast<unsigned int>(std::time(0)));
   poker::holdem::Game<std::mt19937, poker::holdem::Statistics> game(table, players, std::move(player_models), stats, rng);
 
-  // Set up output stream
-  std::ofstream fout;
-  if (!args.output_file.empty()) {
-    if (args.append_output) {
-      fout = std::ofstream(args.output_file, std::ios::app);
-    } else {
-      fout = std::ofstream(args.output_file);
-    }
-    if (!fout.is_open()) {
-      std::cerr << "Error: Unable to open output file '" << args.output_file << "'" << std::endl;
-      exit(1);
-    }
+  if (!std::filesystem::is_directory(args.output_dir)) {
+    std::cerr << "Error: Invalid output directory '" << args.output_dir << "'" << std::endl;
+    exit(1);
   }
-  std::ostream& out = !args.output_file.empty() ? fout : std::cout;
 
   ProgressBar progress_bar(args.iterations, 50);
   for (int i=0; i<args.iterations; i++) {
-    // std::cerr << "iteration " << i << std::endl;
     progress_bar.Update(i);
     game.Play();
   }
   progress_bar.Update(args.iterations);
 
-  stats.Display(out);
-  fout.close();
+  stats.Display();
 
   return 0;
 }

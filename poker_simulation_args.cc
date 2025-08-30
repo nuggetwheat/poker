@@ -14,10 +14,10 @@ void PokerSimulationArgs::Display() const {
   }
   std::cout << "Players: " << players << std::endl;
   std::cout << "Iterations: " << iterations << std::endl;
-  if (output_file.empty()) {
-    std::cout << "Output file: <stdout>" << std::endl;
+  if (output_dir.empty()) {
+    std::cout << "Output directory: ." << std::endl;
   } else {
-    std::cout << "Output file: " << output_file << std::endl;
+    std::cout << "Output directory: " << output_dir << std::endl;
   }
   std::cout << "Player model: " << player_model << std::endl;
   std::cout << "Statistics:";
@@ -58,16 +58,16 @@ PokerSimulationArgs ParseArgs(int argc, char *argv[]) {
     .default_value(100'000'000)
     .store_into(args.iterations)
     .scan<'i', int>();
-  program.add_argument("-o", "--output")
-    .help("Output file name")
-    .default_value(std::string())
-    .store_into(args.output_file);
+  program.add_argument("-d", "--output-dir")
+    .help("Output directory name")
+    .default_value(std::string("."))
+    .store_into(args.output_dir);
   program.add_argument("-m", "--player-model")
     .help("Player model (showdown)")
     .default_value(std::string("showdown"))
     .store_into(args.player_model);
   program.add_argument("-a", "--append-output")
-    .help("Append output to output file")
+    .help("Append output to output files")
     .default_value(false)
     .implicit_value(true)
     .store_into(args.append_output);
