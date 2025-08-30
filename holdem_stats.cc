@@ -1,5 +1,3 @@
-#include "holdem_stats.h"
-
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -11,6 +9,7 @@
 
 #include "cards.pb.h"
 #include "holdem.h"
+#include "holdem_stats.h"
 #include "poker.h"
 #include "poker.pb.h"
 #include "poker_simulation_args.h"
@@ -37,7 +36,7 @@ Statistics::Statistics(PokerSimulationArgs& args) : args_(args) {
 
   // Initialize beat matrix
   beat_matrix_ = std::make_unique<std::vector<int>[]>(offset);
-  for (int i=0; i<offset; i++) {
+  for (int i = 0; i < offset; i++) {
     beat_matrix_[i].resize(offset, 0);
   }
 
@@ -46,13 +45,13 @@ Statistics::Statistics(PokerSimulationArgs& args) : args_(args) {
   // (enum value 14)
   hand.set_type(HandType::STRAIGHT_FLUSH);
   hand.clear_rank();
-  for (int i=0; i<5; i++) {
+  for (int i = 0; i < 5; i++) {
     hand.add_rank(Rank::ACE);
   }
   hand.set_sort_code(HandToSortCode(hand));
-  hand_win_count_flop_ = std::vector<int32_t>(hand.sort_code()+1, 0);
-  hand_win_count_turn_ = std::vector<int32_t>(hand.sort_code()+1, 0);
-  hand_win_count_river_ = std::vector<int32_t>(hand.sort_code()+1, 0);
+  hand_win_count_flop_ = std::vector<int32_t>(hand.sort_code() + 1, 0);
+  hand_win_count_turn_ = std::vector<int32_t>(hand.sort_code() + 1, 0);
+  hand_win_count_river_ = std::vector<int32_t>(hand.sort_code() + 1, 0);
 
   // Initialize hole hand appearence and win vectors
   hole_hand_appearance_ = std::vector<int32_t>(hand_index_.size(), 0);
@@ -63,7 +62,7 @@ void Statistics::NewGame(const poker::Table& table,
                          std::vector<Player>& players) {
   table_ = &table;
   players_.resize(players.size());
-  for (int i=0; i<players.size(); i++) {
+  for (int i = 0; i < players.size(); i++) {
     players_[i] = &players[i];
   }
   total_games_++;
@@ -74,55 +73,51 @@ void Statistics::Collect(Round round) {
   HandEvaluator he;
 
   switch (round) {
-  case Round::INITIAL:
-    for (Player* player : players) {
-      player->set_preflop_hand(HoleHand(player->cards()));
-    }
-    break;
-  case Round::FLOP:
-    if (args_.stats_winning_hand) {
+    case Round::INITIAL:
       for (Player* player : players) {
-        he.Reset(table_->community_cards());
-        player->set_flop_hand(he.Evaluate(player->cards()));
+        player->set_preflop_hand(HoleHand(player->cards()));
       }
-      std::sort(players.begin(), players.end(),
-                [](Player* lhs, Player* rhs) {
-                  return lhs->flop_hand().sort_code() > rhs->flop_hand().sort_code();
-                });
-      hand_win_count_flop_[players[0]->flop_hand().sort_code()]++;
-    }
-    break;
-  case Round::TURN:
-    if (args_.stats_winning_hand) {
-      for (Player* player : players) {
-        he.Reset(table_->community_cards());
-        player->set_turn_hand(he.Evaluate(player->cards()));
+      break;
+    case Round::FLOP:
+      if (args_.stats_winning_hand) {
+        for (Player* player : players) {
+          he.Reset(table_->community_cards());
+          player->set_flop_hand(he.Evaluate(player->cards()));
+        }
+        std::sort(players.begin(), players.end(), [](Player* lhs, Player* rhs) {
+          return lhs->flop_hand().sort_code() > rhs->flop_hand().sort_code();
+        });
+        hand_win_count_flop_[players[0]->flop_hand().sort_code()]++;
       }
-      std::sort(players.begin(), players.end(),
-                [](Player* lhs, Player* rhs) {
-                  return lhs->turn_hand().sort_code() > rhs->turn_hand().sort_code();
-                });
-      hand_win_count_turn_[players[0]->turn_hand().sort_code()]++;
-    }
-    break;
-  case Round::RIVER:
-    {
+      break;
+    case Round::TURN:
+      if (args_.stats_winning_hand) {
+        for (Player* player : players) {
+          he.Reset(table_->community_cards());
+          player->set_turn_hand(he.Evaluate(player->cards()));
+        }
+        std::sort(players.begin(), players.end(), [](Player* lhs, Player* rhs) {
+          return lhs->turn_hand().sort_code() > rhs->turn_hand().sort_code();
+        });
+        hand_win_count_turn_[players[0]->turn_hand().sort_code()]++;
+      }
+      break;
+    case Round::RIVER: {
       for (Player* player : players) {
         he.Reset(table_->community_cards());
         player->set_river_hand(he.Evaluate(player->cards()));
       }
-      std::sort(players.begin(), players.end(),
-                [](Player* lhs, Player* rhs) {
-                  return lhs->river_hand().sort_code() > rhs->river_hand().sort_code();
-                });
+      std::sort(players.begin(), players.end(), [](Player* lhs, Player* rhs) {
+        return lhs->river_hand().sort_code() > rhs->river_hand().sort_code();
+      });
       if (args_.stats_winning_hand) {
         hand_win_count_river_[players[0]->river_hand().sort_code()]++;
       }
       if (args_.stats_hole_cards) {
         int32_t prev_sort_code = 0;
-        for (int i=0; i<players.size()-1; i++) {
+        for (int i = 0; i < players.size() - 1; i++) {
           prev_sort_code = players[i]->river_hand().sort_code();
-          for (int j=i+1; j<players.size(); j++) {
+          for (int j = i + 1; j < players.size(); j++) {
             // Only increment win count for distinct hands and for each distinct
             // pair of hands, only increment win count once. On other words,
             // given the following four hands (AA, AA, KTo, KTo), we should not
@@ -141,10 +136,9 @@ void Statistics::Collect(Round round) {
         }
         hole_hand_win_[hand_index_[players[0]->preflop_hand()]]++;
       }
-    }
-    break;
-  default:
-    break;
+    } break;
+    default:
+      break;
   }
 }
 
@@ -160,11 +154,12 @@ std::string FlushSuffix(Hand& hand) {
     return "s";
   return "";
 }
-void ColumnStripeOrderApply(std::ostream& os, int total_size, int column_size,
-                            std::function<void(std::ostream&,int,int,int,int)> func) {
+void ColumnStripeOrderApply(
+    std::ostream& os, int total_size, int column_size,
+    std::function<void(std::ostream&, int, int, int, int)> func) {
   int stripe_size = std::ceil((double)total_size / (double)column_size);
-  for (int i=0; i<stripe_size; i++) {
-    for (int j=0; j<column_size; j++) {
+  for (int i = 0; i < stripe_size; i++) {
+    for (int j = 0; j < column_size; j++) {
       if (j > 0) {
         os << ",";
       }
@@ -175,7 +170,7 @@ void ColumnStripeOrderApply(std::ostream& os, int total_size, int column_size,
     }
   }
 }
-}
+}  // namespace
 
 void Statistics::Display() {
   std::filesystem::path output_file;
@@ -188,11 +183,11 @@ void Statistics::Display() {
   }
   if (args_.stats_hole_cards) {
     std::vector<std::vector<float>> win_percentage(hand_index_.size());
-    for (int i=0; i<hand_index_.size(); i++) {
+    for (int i = 0; i < hand_index_.size(); i++) {
       win_percentage[i] = std::vector<float>(hand_index_.size());
     }
-    for (int i=0; i<hand_index_.size(); i++) {
-      for (int j=0; j<hand_index_.size(); j++) {
+    for (int i = 0; i < hand_index_.size(); i++) {
+      for (int j = 0; j < hand_index_.size(); j++) {
         if (beat_matrix_[i][j] > beat_matrix_[j][i]) {
           win_stats[i].hand_wins++;
         }
@@ -201,7 +196,8 @@ void Statistics::Display() {
         } else if (i == j) {
           win_percentage[i][j] = 0.0;
         } else {
-          win_percentage[i][j] = 100.0 * beat_matrix_[i][j] / (beat_matrix_[i][j] + beat_matrix_[j][i]);
+          win_percentage[i][j] = 100.0 * beat_matrix_[i][j] /
+                                 (beat_matrix_[i][j] + beat_matrix_[j][i]);
         }
       }
     }
@@ -213,7 +209,8 @@ void Statistics::Display() {
     output_file = std::filesystem::path(args_.output_dir);
     output_file.append("hole-cards-win-rank.csv");
     fout = std::ofstream(output_file);
-    auto output_wins_fn = [&](std::ostream& os, int i, int j, int stripe_size, int column_size) {
+    auto output_wins_fn = [&](std::ostream& os, int i, int j, int stripe_size,
+                              int column_size) {
       int offset = i + (j * stripe_size);
       if (offset < win_stats.size()) {
         WinStatsT& stats = win_stats[offset];
@@ -240,14 +237,16 @@ void Statistics::Display() {
         win_stats_sorted[index].index = index;
         win_stats_sorted[index].hand = hand;
         win_stats_sorted[index].hand_wins = 0;
-        win_stats_sorted[index].win_percentage = win_percentage[stats.index][index];
+        win_stats_sorted[index].win_percentage =
+            win_percentage[stats.index][index];
       }
       std::sort(win_stats_sorted.begin(), win_stats_sorted.end(),
                 [](const WinStatsT& lhs, const WinStatsT& rhs) {
                   return lhs.win_percentage < rhs.win_percentage;
                 });
 
-      auto output_win_pct_fn = [&](std::ostream& os, int i, int j, int stripe_size, int column_size) {
+      auto output_win_pct_fn = [&](std::ostream& os, int i, int j,
+                                   int stripe_size, int column_size) {
         int offset = i + (j * stripe_size);
         if (offset < win_stats_sorted.size()) {
           os << HoleHandToString(win_stats_sorted[offset].hand) << ","
@@ -271,13 +270,15 @@ void Statistics::Display() {
     fout = std::ofstream(output_file);
     fout << std::fixed << std::setprecision(2);
     for (WinStatsT& stats : win_stats) {
-      stats.win_percentage = (100.0 * hole_hand_win_[stats.index]) / (double)hole_hand_appearance_[stats.index];
+      stats.win_percentage = (100.0 * hole_hand_win_[stats.index]) /
+                             (double)hole_hand_appearance_[stats.index];
     }
     std::sort(win_stats.begin(), win_stats.end(),
               [](const WinStatsT& lhs, const WinStatsT& rhs) {
                 return lhs.win_percentage > rhs.win_percentage;
               });
-    auto output_win_pct_showdown_fn = [&](std::ostream& os, int i, int j, int stripe_size, int column_size) {
+    auto output_win_pct_showdown_fn = [&](std::ostream& os, int i, int j,
+                                          int stripe_size, int column_size) {
       int offset = i + (j * stripe_size);
       if (offset < win_stats.size()) {
         WinStatsT& stats = win_stats[offset];
@@ -286,7 +287,8 @@ void Statistics::Display() {
         fout << ",";
       }
     };
-    ColumnStripeOrderApply(fout, win_stats.size(), 10, output_win_pct_showdown_fn);
+    ColumnStripeOrderApply(fout, win_stats.size(), 10,
+                           output_win_pct_showdown_fn);
     fout.close();
   }
   if (args_.stats_winning_hand) {
@@ -301,26 +303,30 @@ void Statistics::Display() {
     uint32_t median_offset_flop = 0;
     uint32_t median_offset_turn = 0;
     uint32_t median_offset_river = 0;
-    for (uint32_t i=0; i<hand_win_count_river_.size(); i++) {
-      if (hand_win_count_flop_[i] != 0 || hand_win_count_turn_[i] != 0 || hand_win_count_river_[i] != 0) {
+    for (uint32_t i = 0; i < hand_win_count_river_.size(); i++) {
+      if (hand_win_count_flop_[i] != 0 || hand_win_count_turn_[i] != 0 ||
+          hand_win_count_river_[i] != 0) {
         hand = SortCodeToHand(i);
       }
       if (hand_win_count_flop_[i] != 0) {
-        winning_hand_type_flop[static_cast<int>(hand.type())] += hand_win_count_flop_[i];
+        winning_hand_type_flop[static_cast<int>(hand.type())] +=
+            hand_win_count_flop_[i];
         count_flop += hand_win_count_flop_[i];
         if (median_offset_flop == 0 && count_flop >= median) {
           median_offset_flop = i;
         }
       }
       if (hand_win_count_turn_[i] != 0) {
-        winning_hand_type_turn[static_cast<int>(hand.type())] += hand_win_count_turn_[i];
+        winning_hand_type_turn[static_cast<int>(hand.type())] +=
+            hand_win_count_turn_[i];
         count_turn += hand_win_count_turn_[i];
         if (median_offset_turn == 0 && count_turn >= median) {
           median_offset_turn = i;
         }
       }
       if (hand_win_count_river_[i] != 0) {
-        winning_hand_type_river[static_cast<int>(hand.type())] += hand_win_count_river_[i];
+        winning_hand_type_river[static_cast<int>(hand.type())] +=
+            hand_win_count_river_[i];
         count_river += hand_win_count_river_[i];
         if (median_offset_river == 0 && count_river >= median) {
           median_offset_river = i;
@@ -337,12 +343,15 @@ void Statistics::Display() {
       fout = std::ofstream(output_file, std::ios::app);
     } else {
       fout = std::ofstream(output_file);
-      fout << "Players,High Card,One Pair,Two Pair,Three Of A Kind,Straight,Flush,Full House,Four Of A Kind,Straight Flush,Median\n";
+      fout << "Players,High Card,One Pair,Two Pair,Three Of A "
+              "Kind,Straight,Flush,Full House,Four Of A Kind,Straight "
+              "Flush,Median\n";
     }
     fout << table_->players().size() << ",";
     fout << std::fixed << std::setprecision(3);
-    for (int i=1; i<10; i++) {
-      double percentage = (winning_hand_type_flop[i] * 100.0) / args_.iterations;
+    for (int i = 1; i < 10; i++) {
+      double percentage =
+          (winning_hand_type_flop[i] * 100.0) / args_.iterations;
       fout << percentage << ",";
     }
     hand = SortCodeToHand(median_offset_flop);
@@ -358,12 +367,15 @@ void Statistics::Display() {
       fout = std::ofstream(output_file, std::ios::app);
     } else {
       fout = std::ofstream(output_file);
-      fout << "Players,High Card,One Pair,Two Pair,Three Of A Kind,Straight,Flush,Full House,Four Of A Kind,Straight Flush,Median\n";
+      fout << "Players,High Card,One Pair,Two Pair,Three Of A "
+              "Kind,Straight,Flush,Full House,Four Of A Kind,Straight "
+              "Flush,Median\n";
     }
     fout << table_->players().size() << ",";
     fout << std::fixed << std::setprecision(3);
-    for (int i=1; i<10; i++) {
-      double percentage = (winning_hand_type_turn[i] * 100.0) / args_.iterations;
+    for (int i = 1; i < 10; i++) {
+      double percentage =
+          (winning_hand_type_turn[i] * 100.0) / args_.iterations;
       fout << percentage << ",";
     }
     hand = SortCodeToHand(median_offset_turn);
@@ -379,12 +391,15 @@ void Statistics::Display() {
       fout = std::ofstream(output_file, std::ios::app);
     } else {
       fout = std::ofstream(output_file);
-      fout << "Players,High Card,One Pair,Two Pair,Three Of A Kind,Straight,Flush,Full House,Four Of A Kind,Straight Flush,Median\n";
+      fout << "Players,High Card,One Pair,Two Pair,Three Of A "
+              "Kind,Straight,Flush,Full House,Four Of A Kind,Straight "
+              "Flush,Median\n";
     }
     fout << table_->players().size() << ",";
     fout << std::fixed << std::setprecision(3);
-    for (int i=1; i<10; i++) {
-      double percentage = (winning_hand_type_river[i] * 100.0) / args_.iterations;
+    for (int i = 1; i < 10; i++) {
+      double percentage =
+          (winning_hand_type_river[i] * 100.0) / args_.iterations;
       fout << percentage << "%,";
     }
     hand = SortCodeToHand(median_offset_river);
@@ -430,4 +445,4 @@ void Statistics::Display() {
     os << "," << hand << flush_suffix << std::endl;
 #endif
 
-} // namespace poker::holdem
+}  // namespace poker::holdem
