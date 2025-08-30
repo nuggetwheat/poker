@@ -160,11 +160,18 @@ std::string FlushSuffix(Hand& hand) {
     return "s";
   return "";
 }
-void ColumnStripeOrderApply(int total_size, int column_size, std::function<void(int,int,int,int)> func) {
+void ColumnStripeOrderApply(std::ostream& os, int total_size, int column_size,
+                            std::function<void(std::ostream&,int,int,int,int)> func) {
   int stripe_size = std::ceil((double)total_size / (double)column_size);
   for (int i=0; i<stripe_size; i++) {
     for (int j=0; j<column_size; j++) {
-      func(i, j, stripe_size, column_size);
+      if (j > 0) {
+        os << ",";
+      }
+      func(os, i, j, stripe_size, column_size);
+      if (j == column_size - 1) {
+        os << "\n";
+      }
     }
   }
 }
@@ -206,22 +213,16 @@ void Statistics::Display() {
     output_file = std::filesystem::path(args_.output_dir);
     output_file.append("hole-cards-win-rank.csv");
     fout = std::ofstream(output_file);
-    auto output_wins_fn = [&](int i, int j, int stripe_size, int column_size) {
-      if (j>0) {
-        fout << ",";
-      }
+    auto output_wins_fn = [&](std::ostream& os, int i, int j, int stripe_size, int column_size) {
       int offset = i + (j * stripe_size);
       if (offset < win_stats.size()) {
         WinStatsT& stats = win_stats[offset];
-        fout << HoleHandToString(stats.hand) << "," << stats.hand_wins;
+        os << HoleHandToString(stats.hand) << "," << stats.hand_wins;
       } else {
-        fout << ",";
-      }
-      if (j == column_size-1) {
-        fout << "\n";
+        os << ",";
       }
     };
-    ColumnStripeOrderApply(hand_index_.size(), 10, output_wins_fn);
+    ColumnStripeOrderApply(fout, hand_index_.size(), 10, output_wins_fn);
     fout.close();
 
     //
@@ -246,20 +247,16 @@ void Statistics::Display() {
                   return lhs.win_percentage < rhs.win_percentage;
                 });
 
-      auto output_win_pct_fn = [&](int i, int j, int stripe_size, int column_size) {
-        if (j>0) {
-          fout << ",";
-        }
+      auto output_win_pct_fn = [&](std::ostream& os, int i, int j, int stripe_size, int column_size) {
         int offset = i + (j * stripe_size);
         if (offset < win_stats_sorted.size()) {
-          fout << HoleHandToString(win_stats_sorted[offset].hand) << ","
+          os << HoleHandToString(win_stats_sorted[offset].hand) << ","
              << win_stats_sorted[offset].win_percentage;
-        }
-        if (j == column_size - 1) {
-          fout << "\n";
+        } else {
+          os << ",";
         }
       };
-      ColumnStripeOrderApply(hand_index_.size(), 10, output_win_pct_fn);
+      ColumnStripeOrderApply(fout, hand_index_.size(), 10, output_win_pct_fn);
     }
     fout.close();
 
@@ -280,10 +277,7 @@ void Statistics::Display() {
               [](const WinStatsT& lhs, const WinStatsT& rhs) {
                 return lhs.win_percentage > rhs.win_percentage;
               });
-    auto output_win_pct_showdown_fn = [&](int i, int j, int stripe_size, int column_size) {
-      if (j>0) {
-        fout << ",";
-      }
+    auto output_win_pct_showdown_fn = [&](std::ostream& os, int i, int j, int stripe_size, int column_size) {
       int offset = i + (j * stripe_size);
       if (offset < win_stats.size()) {
         WinStatsT& stats = win_stats[offset];
@@ -291,11 +285,8 @@ void Statistics::Display() {
       } else {
         fout << ",";
       }
-      if (j == column_size-1) {
-        fout << "\n";
-      }
     };
-    ColumnStripeOrderApply(win_stats.size(), 10, output_win_pct_showdown_fn);
+    ColumnStripeOrderApply(fout, win_stats.size(), 10, output_win_pct_showdown_fn);
     fout.close();
   }
   if (args_.stats_winning_hand) {
