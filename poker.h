@@ -24,6 +24,8 @@ struct std::hash<poker::Hand>
 
 namespace poker {
 
+constexpr int kHandTypeMax = static_cast<int>(HandType::MAX);
+
 inline bool operator==(const Hand& lhs, const Hand& rhs)
 {
   return lhs.sort_code() == rhs.sort_code();
@@ -62,17 +64,8 @@ public:
   const std::vector<Card>& cards() const { return cards_; }
   void add_card(Card card) { cards_.push_back(card); }
 
-  const Hand& preflop_hand() const { return preflop_hand_; }
-  void set_preflop_hand(Hand hand) { preflop_hand_ = hand; }
-
-  const Hand& flop_hand() const { return flop_hand_; }
-  void set_flop_hand(Hand hand) { flop_hand_ = hand; }
-
-  const Hand& turn_hand() const { return turn_hand_; }
-  void set_turn_hand(Hand hand) { turn_hand_ = hand; }
-
-  const Hand& river_hand() const { return river_hand_; }
-  void set_river_hand(Hand hand) { river_hand_ = hand; }
+  const Hand& hand(int i) const { return hand_[i]; }
+  void set_hand(int i, Hand hand) { if (hand_.size() <= i) hand_.resize(i+1); hand_[i] = hand; }
 
   bool folded() const { return folded_; }
   void fold() { folded_ = true; }
@@ -81,10 +74,7 @@ public:
 
 private:
   std::vector<Card> cards_;
-  Hand preflop_hand_;
-  Hand flop_hand_;
-  Hand turn_hand_;
-  Hand river_hand_;
+  std::vector<Hand> hand_;
   bool folded_{};
 };
 

@@ -15,12 +15,20 @@
 namespace poker::holdem {
 
 enum class Round {
-  UNSPECIFIED,
-  INITIAL,
+  PREFLOP,
   FLOP,
   TURN,
-  RIVER
+  RIVER,
+  // TODO: change to MAX
+  COUNT
 };
+
+constexpr int kRoundPreflop = static_cast<int>(Round::PREFLOP);
+constexpr int kRoundFlop = static_cast<int>(Round::FLOP);
+constexpr int kRoundTurn = static_cast<int>(Round::TURN);
+constexpr int kRoundRiver = static_cast<int>(Round::RIVER);
+constexpr int kRoundMax = static_cast<int>(Round::COUNT);
+constexpr const char* const kRound[] = { "preflop", "flop", "turn", "river" };
 
 class PlayerModel {
  public:
@@ -34,7 +42,7 @@ typedef std::vector<std::unique_ptr<poker::holdem::PlayerModel>>
 
 inline std::ostream& operator<<(std::ostream& os, const Round& round) {
   switch (round) {
-  case Round::INITIAL:
+  case Round::PREFLOP:
     os << "initial";
     break;
   case Round::FLOP:
@@ -80,7 +88,7 @@ public:
     Round round;
     NewGame();
 
-    round = Round::INITIAL;
+    round = Round::PREFLOP;
     Deal(round);
     BettingRound(round);
     stats_.Collect(round);
@@ -123,7 +131,7 @@ void Game<RNG, STATS>::NewGame() {
 template <typename RNG, typename STATS>
 void Game<RNG, STATS>::Deal(Round round) {
   switch (round) {
-  case Round::INITIAL:
+  case Round::PREFLOP:
     for (Player& player : players_) {
       player.add_card(deck().DealCard());
       player.add_card(deck().DealCard());
@@ -147,7 +155,7 @@ void Game<RNG, STATS>::Deal(Round round) {
 
 template <typename RNG, typename STATS>
 void Game<RNG, STATS>::BettingRound(Round round) {
-  int starting_offset = (round == Round::INITIAL) ? -3 : -1;
+  int starting_offset = (round == Round::PREFLOP) ? -3 : -1;
   int next_to_act = Base::RotatePosition(table().button(), starting_offset);
 
   for (int remaining = players_.size(); remaining > 0; remaining--) {
@@ -180,7 +188,7 @@ void Game<RNG, STATS>::BettingRound(Round round) {
   int next_player;
   Player* player;
   switch (round) {
-  case Round::INITIAL:
+  case Round::PREFLOP:
     for (int bettor = StartingBettor(round); !BettingFinished(); bettor = NextBettor()) {
     }
     starting_player = RotatePosition(table.button(), -2);

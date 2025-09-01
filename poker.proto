@@ -15,6 +15,7 @@ enum HandType {
   FULL_HOUSE = 7;
   FOUR_OF_A_KIND = 8;
   STRAIGHT_FLUSH = 9;
+  MAX = 10;
 }
 
 enum HandAttribute {
